@@ -19,17 +19,17 @@ train_data_files = {
     "nr-er-lbd": "./data/raw/tox21smiles/nr-er-lbd.smiles",
     "sr-hse": "./data/raw/tox21smiles/sr-hse.smiles"
 }
+if __name__ == "__main__":
+    nr_ahr = pd.read_csv(train_data_files["nr-ahr"], sep="\t", header=None)
+    nr_er_lbd = pd.read_csv(train_data_files["nr-er-lbd"], sep="\t", header=None)
+    sr_hse = pd.read_csv(train_data_files["sr-hse"], sep="\t", header=None)
 
-nr_ahr = pd.read_csv(train_data_files["nr-ahr"], sep="\t", header=None)
-nr_er_lbd = pd.read_csv(train_data_files["nr-er-lbd"], sep="\t", header=None)
-sr_hse = pd.read_csv(train_data_files["sr-hse"], sep="\t", header=None)
+    molecules = np.unique(pd.concat([nr_ahr[0], nr_er_lbd[0], sr_hse[0]]))
 
-molecules = np.unique(pd.concat([nr_ahr[0], nr_er_lbd[0], sr_hse[0]]))
+    train = pd.DataFrame()
+    train['molecule'] = molecules
+    train['NR.ahr'] = get_values_for_molecules(molecules, nr_ahr)
+    train['NR.erlbd'] = get_values_for_molecules(molecules, nr_er_lbd)
+    train['SR.hse'] = get_values_for_molecules(molecules, sr_hse)
 
-train = pd.DataFrame()
-train['molecule'] = molecules
-train['NR.ahr'] = get_values_for_molecules(molecules, nr_ahr)
-train['NR.erlbd'] = get_values_for_molecules(molecules, nr_er_lbd)
-train['SR.hse'] = get_values_for_molecules(molecules, sr_hse)
-
-train.to_csv('./data/intermediate/tox21_train_3_labels.csv')
+    train.to_csv('./data/intermediate/tox21_train_3_labels.csv')

@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 from PyBioMed.PyMolecule import fingerprint
 from rdkit import Chem
-from rdkit.Chem import MACCSkeys, AllChem
 from rdkit.Chem.PandasTools import LoadSDF
 
 
@@ -54,21 +53,22 @@ def convert_to_mol(smiles_data):
     return (mol_vector)
 
 
-train_data_files = {
-    "nr-ahr": "./data/raw/tox21smiles/nr-ahr.smiles",
-    "nr-er-lbd": "./data/raw/tox21smiles/nr-er-lbd.smiles",
-    "sr-hse": "./data/raw/tox21smiles/sr-hse.smiles"
-}
+if __name__ == "__main__":
+    train_data_files = {
+        "nr-ahr": "./data/raw/tox21smiles/nr-ahr.smiles",
+        "nr-er-lbd": "./data/raw/tox21smiles/nr-er-lbd.smiles",
+        "sr-hse": "./data/raw/tox21smiles/sr-hse.smiles"
+    }
 
-train = pd.read_csv('./data/intermediate/tox21_train_3_labels.csv', index_col=0).reindex()
+    train = pd.read_csv('./data/intermediate/tox21_train_3_labels.csv', index_col=0).reindex()
 
-mol = convert_to_mol(train['molecule'])
-maccs_train_data = maccs_keys_fingerprints(mol)
-morgan_train_data = morgan_fingerprints(mol)
+    mol = convert_to_mol(train['molecule'])
+    maccs_train_data = maccs_keys_fingerprints(mol)
+    morgan_train_data = morgan_fingerprints(mol)
 
-fingerprints = pd.concat([maccs_train_data, morgan_train_data], axis=1)
-fingerprints['NR.ahr'] = train['NR.ahr']
-fingerprints['NR.erlbd'] = train['NR.erlbd']
-fingerprints['SR.hse'] = train['SR.hse']
+    fingerprints = pd.concat([maccs_train_data, morgan_train_data], axis=1)
+    fingerprints['NR.ahr'] = train['NR.ahr']
+    fingerprints['NR.erlbd'] = train['NR.erlbd']
+    fingerprints['SR.hse'] = train['SR.hse']
 
-fingerprints.to_csv('./data/intermediate/tox21_maccs_morgan_fingerprints.csv')
+    fingerprints.to_csv('./data/intermediate/tox21_maccs_morgan_fingerprints.csv')

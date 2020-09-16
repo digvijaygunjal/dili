@@ -19,14 +19,15 @@ def calculate_scores(actual, predicted):
     }
 
 
-train = pd.read_csv('./data/intermediate/tox21_maccs_morgan_fingerprints.csv', index_col=0).reindex()
+if __name__ == "__main__":
+    train = pd.read_csv('./data/intermediate/tox21_maccs_morgan_fingerprints.csv', index_col=0).reindex()
 
-to_predict = pd.DataFrame()
-to_predict['NR.ahr'] = train['NR.ahr']
-to_predict = to_predict.fillna(0)
-values = train.iloc[:, :-3]
-x_train, x_test, y_train, y_test = train_test_split(values, to_predict, random_state=1)
+    to_predict = pd.DataFrame()
+    to_predict['NR.ahr'] = train['NR.ahr']
+    to_predict = to_predict.fillna(0)
+    values = train.iloc[:, :-3]
+    x_train, x_test, y_train, y_test = train_test_split(values, to_predict, random_state=1)
 
-classifier = RandomForestClassifier(n_jobs=10)
-predicted, model = classify_and_predict(x_train, x_test, y_train, classifier)
-scores = calculate_scores(y_test, predicted)
+    classifier = RandomForestClassifier(n_jobs=10)
+    predicted, model = classify_and_predict(x_train, x_test, y_train, classifier)
+    scores = calculate_scores(y_test, predicted)
