@@ -1,4 +1,6 @@
+import numpy as np
 import pandas as pd
+from mordred import Calculator, descriptors
 
 from src.create_tox21_fingerprints import convert_to_mol, maccs_keys_fingerprints, morgan_fingerprints
 
@@ -6,6 +8,18 @@ from src.create_tox21_fingerprints import convert_to_mol, maccs_keys_fingerprint
 def update_columns(data, prefix):
     data.columns = map(lambda c: prefix + str(c), data.columns)
     return data
+
+
+def create_3D_descriptors(mol_vector):
+    calculator = Calculator(descriptors, ignore_3D=False)
+    descriptors_3d = []
+    for smiles in np.arange(len(mol_vector)):
+        if not mol_vector[smiles]:
+            descriptors_3d.append({})
+        else:
+            features = calculator(mol_vector[smiles])[1613:]
+            descriptors_3d.append(features)
+    return (pd.DataFrame(descriptors_3d))
 
 
 if __name__ == "__main__":
@@ -18,11 +32,12 @@ if __name__ == "__main__":
     mol = convert_to_mol(data['smiles'])
     maccs = update_columns(maccs_keys_fingerprints(mol), 'maccs')
     morgan = update_columns(morgan_fingerprints(mol), 'morgan')
+    three_d = update_columns(create_3D_descriptors(mol), 'td')
 
-    fingerprints = pd.concat([maccs, morgan], axis=1)
+    fingerprints = pd.concat([maccs, morgan, three_d], axis=1)
     fingerprints['label'] = data['label']
     train_fingerprints = fingerprints[0:train_len]
     test_fingerprints = fingerprints[train_len:]
-    fingerprints.to_csv('./data/intermediate/ncrt_maccs_morgan_fingerprints.csv')
-    train_fingerprints.to_csv('./data/intermediate/ncrt_train_maccs_morgan_fingerprints.csv')
-    test_fingerprints.to_csv('./data/intermediate/ncrt_test_maccs_morgan_fingerprints.csv')
+    fingerprints.to_csv('./data/intermediate/ncrt_fingerprints.csv')
+    train_fingerprints.to_csv('./data/intermediate/ncrt_train_fingerprints.csv')
+    test_fingerprints.to_csv('./data/intermediate/ncrt_test_fingerprints.csv')

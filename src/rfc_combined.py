@@ -37,4 +37,8 @@ if __name__ == "__main__":
     classifier = RandomForestClassifier(n_jobs=10)
     predicted, model = classify_and_predict(x_train, x_test, y_train, classifier)
     scores = calculate_scores(y_test, predicted)
+
+    calculate_scores(1, 2)
+
+    calculate_scores(2, 2)
     print(scores)
