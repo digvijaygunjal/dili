@@ -45,5 +45,6 @@ if __name__ == '__main__':
     model = load_model(file_path)
     fp1 = create_descriptor('CC(=O)Oc1ccc(cc1)C(=C2CCCCC2)c3ccc(cc3)OC(=O)C', 1)
     fp2 = create_descriptor('CC(=O)Oc1ccc(cc1)C(=C2CCCCC2)c3ccc(cc3)OC(=O)C', 2)
-    pred = model.predict(np.reshape(fp1, (1, -1)))
+    target = np.reshape(fp1, (1, -1))
+    pred = model.predict(target)
     print(pred)

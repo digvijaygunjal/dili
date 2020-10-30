@@ -20,7 +20,9 @@ from sklearn.metrics import accuracy_score, hamming_loss, f1_score, roc_auc_scor
 from sklearn.metrics import matthews_corrcoef
 from sklearn.model_selection import train_test_split
 
+from src.create_combined_fingerprints import update_columns
 from src.create_tox21_fingerprints import convert_to_mol
+from src.dnn_ncrt import dnn
 from src.rfc import classify_and_predict
 from src.scoring import specificity, sensitivity
 from imblearn.over_sampling import SMOTE
@@ -37,20 +39,6 @@ def calculate_scores(actual, predicted):
         'specificity': specificity(actual, predicted),
         'sensitivity': sensitivity(actual, predicted)
     }
-
-
-def dnn(input_shape, output_size):
-    model = Sequential()
-    model.add(Dense(128, activation="relu", input_shape=(input_shape,), kernel_initializer=glorot_normal(),
-                    bias_initializer=glorot_normal()))
-    model.add(Dropout(0.4))
-    model.add(Dense(64, activation="relu", kernel_initializer=glorot_normal(), bias_initializer=glorot_normal()))
-    model.add(Dropout(0.4))
-    model.add(Dense(32, activation="relu", kernel_initializer=glorot_normal(), bias_initializer=glorot_normal()))
-    model.add(Dropout(0.2))
-    model.add(
-        Dense(output_size, activation="sigmoid", kernel_initializer=glorot_normal(), bias_initializer=glorot_normal()))
-    return keras.models.clone_model(model)
 
 
 def dnn3d(input_shape, output_size):
@@ -118,92 +106,6 @@ def maccs_fingerprints(mol_vector):
     return pd.DataFrame(morgan_fingerprints_vector).fillna(0)
 
 
-def constitutional_features(mol_vector):
-    """
-    param mol_vector : list of molecules in mol format
-    return : dataset containing 30 constitutional features
-    """
-    constitutional_vector = []
-    for smiles in np.arange(len(mol_vector)):
-        features = constitution.GetConstitutional(mol_vector[smiles])
-        constitutional_vector.append(features)
-    return (pd.DataFrame.from_dict(constitutional_vector))
-
-
-def estate_features(mol_vector):
-    """
-    param mol_vector : list of molecules in mol format
-    return : dataset containing 316 estate features
-    """
-    estate_vector = []
-    for smiles in np.arange(len(mol_vector)):
-        features = estate.GetEstate(mol_vector[smiles])
-        estate_vector.append(features)
-    return (pd.DataFrame.from_dict(estate_vector))
-
-
-def moe_features(mol_vector):
-    """
-    param mol_vector : list of molecules in mol format
-    return : dataset containing 59 moe features
-    """
-    moe_vector = []
-    for smiles in np.arange(len(mol_vector)):
-        features = moe.GetMOE(mol_vector[smiles])
-        moe_vector.append(features)
-    return (pd.DataFrame.from_dict(moe_vector))
-
-
-def bcut_features(mol_vector):
-    """
-    param mol_vector : list of molecules in mol format
-    return : dataset containing 64 burden features
-    """
-    bcut_vector = []
-    error_examples = []
-    for smiles in np.arange(len(mol_vector)):
-        try:
-            features = bcut.GetBurden(mol_vector[smiles])
-            bcut_vector.append(features)
-        except:
-            error_examples.append(smiles)
-            bcut_vector.append(
-                bcut.GetBurden(mol_vector[smiles - 2]).fromkeys(bcut.GetBurden(mol_vector[smiles - 2]), 'NA'))
-            pass
-    return (pd.DataFrame.from_dict(bcut_vector), error_examples)
-
-
-def connectivity_features(mol_vector):
-    """
-    param mol_vector : list of molecules in mol format
-    return : dataset containing 44 connectivity features
-    """
-    connectivity_vector = []
-    for smiles in np.arange(len(mol_vector)):
-        features = connectivity.GetConnectivity(mol_vector[smiles])
-        connectivity_vector.append(features)
-    return (pd.DataFrame.from_dict(connectivity_vector))
-
-
-def molproperty_features(mol_vector):
-    """
-    param mol_vector : list of molecules in mol format
-    return : dataset containing 6 molproperty features
-    """
-    molproperty_vector = []
-    error_examples = []
-    for smiles in np.arange(len(mol_vector)):
-        try:
-            features = molproperty.GetMolecularProperty(mol_vector[smiles])
-            molproperty_vector.append(features)
-        except:
-            error_examples.append(smiles)
-            molproperty_vector.append(molproperty.GetMolecularProperty(mol_vector[smiles - 1]).fromkeys(
-                molproperty.GetMolecularProperty(mol_vector[smiles - 1]), 'NA'))
-            pass
-    return (pd.DataFrame.from_dict(molproperty_vector), error_examples)
-
-
 def charge_features(mol_vector):
     """
     param mol_vector : list of molecules in mol format
@@ -263,6 +165,14 @@ def harmonic_topology_index_feature(mol_vector):
             harmonic_topology_index_feature_vector.append(0)
             pass
     return (harmonic_topology_index_feature_vector)
+
+
+def constitutional_features(mol_vector):
+    constitutional_vector = []
+    for smiles in np.arange(len(mol_vector)):
+        features = constitution.GetConstitutional(mol_vector[smiles])
+        constitutional_vector.append(features)
+    return (pd.DataFrame.from_dict(constitutional_vector))
 
 
 def topology_features(mol_vector):
@@ -333,6 +243,80 @@ def kappa_descriptors(mol_vector):
     return (pd.DataFrame(kappa_vector))
 
 
+def estate_features(mol_vector):
+    """
+    param mol_vector : list of molecules in mol format
+    return : dataset containing 316 estate features
+    """
+    estate_vector = []
+    for smiles in np.arange(len(mol_vector)):
+        features = estate.GetEstate(mol_vector[smiles])
+        estate_vector.append(features)
+    return (pd.DataFrame.from_dict(estate_vector))
+
+
+def moe_features(mol_vector):
+    """
+    param mol_vector : list of molecules in mol format
+    return : dataset containing 59 moe features
+    """
+    moe_vector = []
+    for smiles in np.arange(len(mol_vector)):
+        features = moe.GetMOE(mol_vector[smiles])
+        moe_vector.append(features)
+    return (pd.DataFrame.from_dict(moe_vector))
+
+
+def bcut_features(mol_vector):
+    """
+    param mol_vector : list of molecules in mol format
+    return : dataset containing 64 burden features
+    """
+    bcut_vector = []
+    error_examples = []
+    for smiles in np.arange(len(mol_vector)):
+        try:
+            features = bcut.GetBurden(mol_vector[smiles])
+            bcut_vector.append(features)
+        except:
+            error_examples.append(smiles)
+            bcut_vector.append(
+                bcut.GetBurden(mol_vector[smiles - 2]).fromkeys(bcut.GetBurden(mol_vector[smiles - 2]), 0))
+            pass
+    return (pd.DataFrame.from_dict(bcut_vector), error_examples)
+
+
+def connectivity_features(mol_vector):
+    """
+    param mol_vector : list of molecules in mol format
+    return : dataset containing 44 connectivity features
+    """
+    connectivity_vector = []
+    for smiles in np.arange(len(mol_vector)):
+        features = connectivity.GetConnectivity(mol_vector[smiles])
+        connectivity_vector.append(features)
+    return (pd.DataFrame.from_dict(connectivity_vector))
+
+
+def molproperty_features(mol_vector):
+    """
+    param mol_vector : list of molecules in mol format
+    return : dataset containing 6 molproperty features
+    """
+    molproperty_vector = []
+    error_examples = []
+    for smiles in np.arange(len(mol_vector)):
+        try:
+            features = molproperty.GetMolecularProperty(mol_vector[smiles])
+            molproperty_vector.append(features)
+        except:
+            error_examples.append(smiles)
+            molproperty_vector.append(molproperty.GetMolecularProperty(mol_vector[smiles - 1]).fromkeys(
+                molproperty.GetMolecularProperty(mol_vector[smiles - 1]), 0))
+            pass
+    return (pd.DataFrame.from_dict(molproperty_vector), error_examples)
+
+
 def create_2D_descriptors(mol_vector):
     """
     param mol_vector : list of molecules in mol format
@@ -357,40 +341,75 @@ def create_2D_descriptors(mol_vector):
     return (dataset)
 
 
-if __name__ == "__main__":
-    # ncrt_dili_non_null = pd.read_csv('./data/raw/ncrt_dili_non_null_round.csv', index_col=0).fillna(0).reindex()
-    ncrt_dili_non_null = pd.read_csv('./data/raw/ncrt_dili_round.csv', index_col=0).fillna(0).reset_index(drop=True)
-    ncrt_dili_non_null['severity_class'] = ncrt_dili_non_null['severity_class'].apply(lambda x: x/10)
-    ncrt_dili_non_null = ncrt_dili_non_null.round()
-
-    mol = convert_to_mol(ncrt_dili_non_null['smiles'])
-
-    morgan = morgan_fingerprints(mol)
-    maccs = maccs_fingerprints(mol)
+def get_fingerprints(mol):
+    morgan = update_columns(morgan_fingerprints(mol), 'morgan')
+    maccs = update_columns(maccs_fingerprints(mol), 'maccs')
     charge_f, e = charge_features(mol)
     autocorrelation_f, e = autocorrelation_features(mol)
     harmonic_topology = pd.DataFrame(harmonic_topology_index_feature(mol))
+    constitutional_f = constitutional_features(mol)
+    estate_f = estate_features(mol)
+    moe_f = moe_features(mol)
+    bcut_f, e = bcut_features(mol)
+    molproperty_f, e = molproperty_features(mol)
+    cats2d_f = cats2d_features(mol)
+    kappa = kappa_descriptors(mol)
 
-    fingerprints = {
+    return {
         "maccs": maccs,
         "morgan": morgan,
-        'charge_f': charge_f,
-        'autocorrelation_f': autocorrelation_f,
-        'harmonic_topology': harmonic_topology
+        'charge': update_columns(charge_f, 'charge'),
+        'harmonic_topology': update_columns(harmonic_topology, 'harmonic'),
+        'autocorrelation': update_columns(autocorrelation_f, 'autocorrelation'),
+        'constitutional': update_columns(constitutional_f, 'constitutional'),
+        'estate': update_columns(estate_f, 'estate'),
+        'moe': update_columns(moe_f, 'moe'),
+        'bcut': update_columns(bcut_f, 'bcut'),
+        'molproperty': update_columns(molproperty_f, 'molproperty'),
+        'cats2d': update_columns(cats2d_f, 'cats2d'),
+        'kappa': update_columns(kappa, 'kappa'),
     }
 
+
+def clean_dataset(df):
+    assert isinstance(df, pd.DataFrame), "df needs to be a pd.DataFrame"
+    df.dropna(inplace=True)
+    indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
+    return df[indices_to_keep].astype(np.float64)
+
+
+if __name__ == "__main__":
+    # ncrt_dili_non_null = pd.read_csv('./data/raw/ncrt_dili_non_null_round.csv', index_col=0).fillna(0).reindex()
+    # ncrt_dili_non_null = pd.read_csv('./data/raw/ncrt_liew_train.csv', index_col=0).fillna(0).reset_index(drop=True)
+    # ncrt_dili_non_null['severity_class'] = ncrt_dili_non_null['severity_class'].apply(lambda x: x/10)
+    # ncrt_dili_non_null = ncrt_dili_non_null.round()
+
+    ncrt_train = pd.read_csv('./data/raw/ncrt_liew_train.csv', index_col=0).fillna(0).reset_index(drop=True)
+    ncrt_test = pd.read_csv('./data/raw/ncrt_liew_test.csv', index_col=0).fillna(0).reset_index(drop=True)
+
+    fingerprints = get_fingerprints(convert_to_mol(ncrt_train['smiles']))
+    fingerprints_test = get_fingerprints(convert_to_mol(ncrt_test['smiles']))
+
+    common_comb = ['maccs', 'morgan', 'charge', 'harmonic_topology', 'autocorrelation', 'constitutional', 'estate',
+                   'moe', 'bcut', 'molproperty', 'cats2d', 'kappa']
+
+
+    y = pd.concat([ncrt_train['label'], ncrt_test['label']]).reset_index(drop=True)
+
     comb = []
-    for i in range(1, len(fingerprints.keys())):
-        comb.append(list(combinations(fingerprints.keys(), i)))
+    for i in range(1, len(common_comb)):
+        comb.append(list(combinations(common_comb, i)))
 
     # dnn
     scores = []
+    models = []
     for i in range(0, len(comb)):
         for j in range(0, len(comb[i])):
-            all_inputs = pd.concat(list(map(lambda x: fingerprints[x], comb[i][j])), axis=1).fillna(0)
+            all_inputs = pd.concat(list(map(lambda x: fingerprints[x], comb[i][j])), axis=1)
+            all_inputs_test = pd.concat(list(map(lambda x: fingerprints_test[x], common_comb)), axis=1)
+            X = pd.concat([all_inputs, all_inputs_test]).replace([np.inf, -np.inf, np.nan], 0)
 
-            x_train, x_test, y_train, y_test = train_test_split(all_inputs, ncrt_dili_non_null['severity_class'],
-                                                                random_state=1)
+            x_train, x_test, y_train, y_test = train_test_split(X, y, random_state=1)
 
             print('Original dataset shape %s' % Counter(y_train))
             sm = SMOTE(random_state=1)
@@ -398,7 +417,7 @@ if __name__ == "__main__":
             print('Resampled dataset shape %s' % Counter(y_train))
 
             classifier = dnn(x_train.shape[1], pd.DataFrame(y_train).shape[1])
-            predicted, classfier = dnn_train_and_predict(classifier, x_train.values, x_test.values, y_train.values,
+            predicted, model = dnn_train_and_predict(classifier, x_train, x_test, y_train,
                                                          batch_size=64, epochs=10,
                                                          verbose=0,
                                                          validation_split=0.2)
@@ -407,6 +426,7 @@ if __name__ == "__main__":
             print(score)
             score['key'] = " ".join(comb[i][j])
             scores.append(score)
+            models.append(model)
 
     # Random Forest
     scores = []

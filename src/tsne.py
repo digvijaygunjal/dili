@@ -1,39 +1,56 @@
 import pandas as pd
 import seaborn as sns
-from matplotlib import pyplot as plt
 from sklearn.manifold import TSNE
 
+from src.create_combined_fingerprints import update_columns
+from src.create_tox21_fingerprints import convert_to_mol
+from src.dnn_ncrt_whole import morgan_fingerprints, maccs_fingerprints, charge_features, autocorrelation_features, \
+    harmonic_topology_index_feature
+
+
+def get_fingerprints(mol):
+    morgan = update_columns(morgan_fingerprints(mol), 'morgan')
+    maccs = update_columns(maccs_fingerprints(mol), 'maccs')
+    charge_f, e = charge_features(mol)
+    autocorrelation_f, e = autocorrelation_features(mol)
+    harmonic_topology = pd.DataFrame(harmonic_topology_index_feature(mol))
+    return {
+        "maccs": maccs,
+        "morgan": morgan,
+        'charge_f': update_columns(charge_f, 'charge'),
+        'autocorrelation_f': update_columns(autocorrelation_f, 'autocorrelation_f'),
+        'harmonic_topology': update_columns(harmonic_topology, 'harmonic')
+    }
+
+
 if __name__ == "__main__":
-    train = pd.read_csv('./data/intermediate/ncrt_train_maccs_morgan_fingerprints.csv', index_col=0).reindex()
-    test = pd.read_csv('./data/intermediate/ncrt_test_maccs_morgan_fingerprints.csv', index_col=0).reindex()
+    train = pd.read_csv('./data/raw/ncrt_liew_train.csv', index_col=0).reindex()
+    test = pd.read_csv('./data/raw/ncrt_liew_test.csv', index_col=0).reindex()
 
-    x_train = train.iloc[:, :-1]
-    x_test = test.iloc[:, :-1]
-    y_train = train['label']
-    y_test = test['label']
+    data = pd.concat([train, test]).reset_index(drop=True).fillna(0)
 
-    model = TSNE(metric="euclidean")
-    x_train_tsne = model.fit_transform(x_train)
-    df_subset = {'tsne-2d-one': x_train_tsne[:, 0], 'tsne-2d-two': x_train_tsne[:, 1]}
+    dili_negative = data[data['label'] == 0].reset_index(drop=True)
+    dili_positive = data[data['label'] == 1].reset_index(drop=True)
 
-    df = pd.DataFrame(x_train)
-    df['y'] = y_train
-    df['label'] = df['y'].apply(lambda i: str(i))
+    fingerprints_neg = get_fingerprints(convert_to_mol(dili_negative['smiles']))
+    fingerprints_pos = get_fingerprints(convert_to_mol(dili_positive['smiles']))
 
-    df_subset = df
-    data_subset = df_subset.values
+    common_comb = ['maccs', 'morgan', 'charge_f', 'harmonic_topology', 'autocorrelation_f']
+    # common_comb = ['harmonic_topology']
 
-    tsne = TSNE(n_components=2, verbose=1, perplexity=40, n_iter=300)
-    tsne_results = tsne.fit_transform(data_subset)
+    all_inputs_pos = pd.concat(list(map(lambda x: fingerprints_pos[x], common_comb)), axis=1).fillna(0)
+    all_inputs_neg = pd.concat(list(map(lambda x: fingerprints_neg[x], common_comb)), axis=1).fillna(0)
 
-    df_subset['tsne-2d-one'] = tsne_results[:, 0]
-    df_subset['tsne-2d-two'] = tsne_results[:, 1]
-    plt.figure(figsize=(16, 10))
-    sns.scatterplot(
-        x="tsne-2d-one", y="tsne-2d-two",
-        hue="y",
-        palette=sns.color_palette("hls", 10),
-        data=df_subset,
-        legend="full",
-        alpha=0.3
-    )
+    sns.set(rc={'figure.figsize': (5, 5)})
+    palette = sns.color_palette("bright", 2)
+
+    model = TSNE(metric="euclidean", n_components=2)
+    X_embedded = model.fit_transform(all_inputs_neg)
+    sns.scatterplot(X_embedded[:, 0], X_embedded[:, 1], legend='full', palette=palette)
+
+    sns.set(rc={'figure.figsize': (5, 5)})
+    palette = sns.color_palette("bright", 2)
+
+    model = TSNE(metric="euclidean", n_components=2)
+    X_embedded = model.fit_transform(all_inputs_pos)
+    sns.scatterplot(X_embedded[:, 0], X_embedded[:, 1], legend='full', palette=palette, estimator=2)

@@ -7,22 +7,9 @@ from keras.models import Sequential
 from sklearn.metrics import accuracy_score, hamming_loss, f1_score, matthews_corrcoef, roc_auc_score, \
     balanced_accuracy_score
 
+from src.dnn_ncrt import dnn
 from src.rfc import calculate_scores
 from src.scoring import specificity, sensitivity
-
-
-def dnn(input_shape, output_size):
-    model = Sequential()
-    model.add(Dense(128, activation="relu", input_shape=(input_shape,), kernel_initializer=glorot_normal(),
-                    bias_initializer=glorot_normal()))
-    model.add(Dropout(0.4))
-    model.add(Dense(64, activation="relu", kernel_initializer=glorot_normal(), bias_initializer=glorot_normal()))
-    model.add(Dropout(0.4))
-    model.add(Dense(32, activation="relu", kernel_initializer=glorot_normal(), bias_initializer=glorot_normal()))
-    model.add(Dropout(0.2))
-    model.add(
-        Dense(output_size, activation="sigmoid", kernel_initializer=glorot_normal(), bias_initializer=glorot_normal()))
-    return keras.models.clone_model(model)
 
 
 def dnn_train_and_predict(classifier, X_train, X_test, y_train, batch_size=64, epochs=50, verbose=0,

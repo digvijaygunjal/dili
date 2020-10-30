@@ -65,9 +65,6 @@ def morgan_fingerprints(mol_vector):
             morgan_fingerprints_vector.append(np.reshape(fingerprints, (1, -1))[0])
     return pd.DataFrame(morgan_fingerprints_vector).fillna(0)
 
-
-
-
 def maccs_keys_fingerprints(mol_vector):
     morgan_fingerprints_vector = []
     for smiles in np.arange(len(mol_vector)):
@@ -88,7 +85,6 @@ def convert_to_mol(smiles_data):
     """
     mol_vector = []
     for smile in np.arange(len(smiles_data)):
-        print(smiles_data[smile])
         mol = Chem.MolFromSmiles(smiles_data[smile])
         mol_vector.append(mol)
     return (mol_vector)
