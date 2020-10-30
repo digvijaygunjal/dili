@@ -1,3 +1,5 @@
+import pickle
+
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, hamming_loss, f1_score, matthews_corrcoef, roc_auc_score, \
@@ -36,5 +38,6 @@ if __name__ == "__main__":
 
     classifier = RandomForestClassifier(n_jobs=10)
     predicted, model = classify_and_predict(x_train, x_test, y_train, classifier)
+    pickle.dump(classifier, open("data/rfc_ncrt.pkl", 'wb'))
     scores = calculate_scores(y_test, predicted)
     print(scores)

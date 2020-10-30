@@ -1,3 +1,5 @@
+import pickle
+
 import keras
 import numpy as np
 import pandas as pd
@@ -88,8 +90,8 @@ def convert_to_float(data):
 
 
 if __name__ == "__main__":
-    train = pd.read_csv('./data/intermediate/combined_train_maccs_morgan_fingerprints.csv', index_col=0).fillna(0).reindex()
-    test = pd.read_csv('./data/intermediate/ncrt_test_padel_fingerprints.csv', index_col=0).fillna(0).reindex()
+    train = pd.read_csv('./data/intermediate/ncrt_train_maccs_morgan_fingerprints.csv', index_col=0).fillna(0).reindex()
+    test = pd.read_csv('./data/intermediate/ncrt_test_maccs_morgan_fingerprints.csv', index_col=0).fillna(0).reindex()
 
     x_train = train.iloc[:, :-1].iloc[:, 1:]
     x_test = test.iloc[:, :-1].iloc[:, 1:]
@@ -111,5 +113,6 @@ if __name__ == "__main__":
                                                  batch_size=64, epochs=10,
                                                  verbose=0,
                                                  validation_split=0.2)
+    pickle.dump(classifier, open("data/dnn_ncrt", 'wb'))
     scores = calculate_scores(y_test, predicted)
     print(scores)

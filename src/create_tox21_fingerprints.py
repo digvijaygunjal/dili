@@ -1,8 +1,21 @@
 import numpy as np
 import pandas as pd
-from PyBioMed.PyMolecule import fingerprint
 from rdkit import Chem
+from rdkit.Chem import AllChem, MACCSkeys
 from rdkit.Chem.PandasTools import LoadSDF
+import warnings
+
+import numpy as np
+import pandas as pd
+from rdkit import Chem
+
+warnings.filterwarnings("ignore")
+from mordred import Calculator, descriptors
+from rdkit import RDLogger
+
+RDLogger.DisableLog('rdApp.*')
+from PyBioMed.Pymolecule import constitution, estate, moe, bcut, connectivity, molproperty, geary, charge, moran, \
+    topology, cats2d
 
 
 def sdf_to_smiles(file_path):
@@ -12,32 +25,59 @@ def sdf_to_smiles(file_path):
     return (smiles_data)
 
 
-def maccs_keys_fingerprints(mol_vector):
-    maccs_keys_fingerprints_vector = []
-    all_fingerprints = []
-    for smiles in np.arange(len(mol_vector)):
-        if not mol_vector[smiles]:
-            maccs_keys_fingerprints_vector.append({})
-        else:
-            fingerprints = fingerprint.CalculateMACCSFingerprint(mol_vector[smiles])
-            all_fingerprints.append(fingerprints)
-            maccs_keys_fingerprints_vector.append(fingerprints[1])
-    maccs_keys_fingerprints_df = pd.DataFrame.from_dict(maccs_keys_fingerprints_vector)
-    maccs_keys_fingerprints_df = maccs_keys_fingerprints_df.fillna(0)
-    return pd.DataFrame(maccs_keys_fingerprints_df)
+# def maccs_keys_fingerprints(mol_vector):
+#     maccs_keys_fingerprints_vector = []
+#     all_fingerprints = []
+#     for smiles in np.arange(len(mol_vector)):
+#         if not mol_vector[smiles]:
+#             maccs_keys_fingerprints_vector.append({})
+#         else:
+#             fingerprints = fingerprint.CalculateMACCSFingerprint(mol_vector[smiles])
+#             all_fingerprints.append(fingerprints)
+#             maccs_keys_fingerprints_vector.append(fingerprints[1])
+#     maccs_keys_fingerprints_df = pd.DataFrame.from_dict(maccs_keys_fingerprints_vector)
+#     maccs_keys_fingerprints_df = maccs_keys_fingerprints_df.fillna(0)
+#     return pd.DataFrame(maccs_keys_fingerprints_df)
+#
+#
+# def morgan_fingerprints(mol_vector):
+#     morgan_fingerprints_vector = []
+#     for smiles in np.arange(len(mol_vector)):
+#         if not mol_vector[smiles]:
+#             morgan_fingerprints_vector.append({})
+#         else:
+#
+#             AllChem.GetMorganFingerprintAsBitVect(mol_vector[smiles], 2)
+#             fingerprints = fingerprint.CalculateMorganFingerprint(mol_vector[smiles], 2)
+#             morgan_fingerprints_vector.append(fingerprints[1])
+#     morgan_fingerprints_df = pd.DataFrame.from_dict(morgan_fingerprints_vector)
+#     morgan_fingerprints_df = morgan_fingerprints_df.fillna(0)
+#     return pd.DataFrame(morgan_fingerprints_df)
 
 
 def morgan_fingerprints(mol_vector):
     morgan_fingerprints_vector = []
     for smiles in np.arange(len(mol_vector)):
         if not mol_vector[smiles]:
-            morgan_fingerprints_vector.append({})
+            morgan_fingerprints_vector.append([])
         else:
-            fingerprints = fingerprint.CalculateMorganFingerprint(mol_vector[smiles], 2)
-            morgan_fingerprints_vector.append(fingerprints[1])
-    morgan_fingerprints_df = pd.DataFrame.from_dict(morgan_fingerprints_vector)
-    morgan_fingerprints_df = morgan_fingerprints_df.fillna(0)
-    return pd.DataFrame(morgan_fingerprints_df)
+            fingerprints = AllChem.GetMorganFingerprintAsBitVect(mol_vector[smiles], 2)
+            morgan_fingerprints_vector.append(np.reshape(fingerprints, (1, -1))[0])
+    return pd.DataFrame(morgan_fingerprints_vector).fillna(0)
+
+
+
+
+def maccs_keys_fingerprints(mol_vector):
+    morgan_fingerprints_vector = []
+    for smiles in np.arange(len(mol_vector)):
+        if not mol_vector[smiles]:
+            morgan_fingerprints_vector.append([])
+        else:
+            fingerprints = MACCSkeys.GenMACCSKeys(mol_vector[smiles])
+            morgan_fingerprints_vector.append(np.reshape(fingerprints, (1, -1))[0])
+    return pd.DataFrame(morgan_fingerprints_vector).fillna(0)
+
 
 
 def convert_to_mol(smiles_data):
@@ -48,6 +88,7 @@ def convert_to_mol(smiles_data):
     """
     mol_vector = []
     for smile in np.arange(len(smiles_data)):
+        print(smiles_data[smile])
         mol = Chem.MolFromSmiles(smiles_data[smile])
         mol_vector.append(mol)
     return (mol_vector)
