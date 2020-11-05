@@ -1,12 +1,9 @@
 from collections import Counter
-from itertools import combinations
 
 import keras
 import numpy as np
 import pandas as pd
 from imblearn.over_sampling import SMOTE
-from keras import metrics
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, hamming_loss, f1_score, roc_auc_score, \
     balanced_accuracy_score
 from sklearn.metrics import matthews_corrcoef
@@ -14,12 +11,11 @@ from sklearn.model_selection import StratifiedKFold
 
 from src.create_ncrt_fingerprints import update_columns
 from src.create_tox21_fingerprints import convert_to_mol
-from src.dnn_ncrt import dnn
+from src.dnn_ncrt import dnn, dnn3d
 from src.dnn_ncrt_whole import morgan_fingerprints, maccs_fingerprints, charge_features, autocorrelation_features, \
-    harmonic_topology_index_feature, dnn3d, constitutional_features, topology_features, create_2D_descriptors, \
-    estate_features, moe_features, bcut_features, connectivity_features, molproperty_features, cats2d_features, \
+    harmonic_topology_index_feature, constitutional_features, estate_features, moe_features, bcut_features, \
+    molproperty_features, cats2d_features, \
     kappa_descriptors
-from src.rfc import classify_and_predict
 from src.scoring import specificity, sensitivity
 
 
@@ -34,6 +30,7 @@ def calculate_scores(actual, predicted):
         'specificity': specificity(actual, predicted),
         'sensitivity': sensitivity(actual, predicted)
     }
+
 
 def dnn_train_and_predict(classifier, X_train, X_test, y_train, batch_size=64, epochs=50, verbose=0,
                           validation_split=0.2):
@@ -116,9 +113,9 @@ if __name__ == "__main__":
         model = dnn(x_train.shape[1], pd.DataFrame(y_train).shape[1])
 
         predicted, model = dnn_train_and_predict(model, x_train, xval, y_train,
-                                                     batch_size=64, epochs=10,
-                                                     verbose=0,
-                                                     validation_split=0.2)
+                                                 batch_size=64, epochs=10,
+                                                 verbose=0,
+                                                 validation_split=0.2)
 
         # RFC
         # classifier = RandomForestClassifier(n_jobs=10)

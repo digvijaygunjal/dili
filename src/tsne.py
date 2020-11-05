@@ -28,6 +28,7 @@ if __name__ == "__main__":
     test = pd.read_csv('./data/raw/ncrt_liew_test.csv', index_col=0).reindex()
 
     data = pd.concat([train, test]).reset_index(drop=True).fillna(0)
+    data = data.drop_duplicates('smiles', keep='first')
 
     dili_negative = data[data['label'] == 0].reset_index(drop=True)
     dili_positive = data[data['label'] == 1].reset_index(drop=True)

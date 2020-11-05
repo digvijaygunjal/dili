@@ -27,7 +27,7 @@ def update_columns(data, prefix):
 def arg_parser():
     parser = argparse.ArgumentParser(description='DILI PREDICTION')
     parser.add_argument('--smiles', help='SMILES', default="c1cc(cnc1)C(=O)O")
-    parser.add_argument('--model-path', help='SMILES', default="./dnn_final.pkl")
+    parser.add_argument('--model-path', help='Path of the pickle file', default="./dnn_final.pkl")
     return parser.parse_args()
 
 
@@ -38,14 +38,14 @@ if __name__ == '__main__':
 
     morgan = list(np.reshape(AllChem.GetMorganFingerprintAsBitVect(Chem.MolFromSmiles(smiles), 2), (1, -1))[0])
     maccs = list(np.reshape(MACCSkeys.GenMACCSKeys(Chem.MolFromSmiles(smiles)), (1, -1))[0])
-    charge = list(charge.GetCharge(Chem.MolFromSmiles(smiles)).values())
+    _charge = list(charge.GetCharge(Chem.MolFromSmiles(smiles)).values())
     harmonic_topology = list(np.reshape([topology.CalculateHarmonicTopoIndex(Chem.MolFromSmiles(smiles))], (1, -1))[0])
-    moran = list(moran.GetMoranAuto(Chem.MolFromSmiles(smiles)).values())
-    geary = list(geary.GetGearyAuto(Chem.MolFromSmiles(smiles)).values())
+    _moran = list(moran.GetMoranAuto(Chem.MolFromSmiles(smiles)).values())
+    _geary = list(geary.GetGearyAuto(Chem.MolFromSmiles(smiles)).values())
 
-    fp = morgan + maccs + charge + harmonic_topology + moran + geary
+    fp = morgan + maccs + _charge + harmonic_topology + _moran + _geary
 
     target = np.reshape(fp, (1, -1))
-    pred = model.predict(target)[0][0]
+    pred = model.predict(target)
     print("Prediction: ", np.round(pred))
-    print("Predict Proba : ", model.predict_proba(target)[0][0])
+    print("Predict Proba : ", model.predict_proba(target))

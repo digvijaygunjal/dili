@@ -69,6 +69,12 @@ if __name__ == '__main__':
     predicted = model.predict(all_inputs)
     predicted = list(np.round(predicted))
     predicted = list(map(lambda row: list(map(int, row)), predicted))
+
+    predicted_proba = model.predict(all_inputs)
+    pred = (predicted_proba > .19).astype(int)
+    score = calculate_scores(y_true, pred)
+    print(score)
+
     score = calculate_scores(y_true, predicted)
     print(score)
 

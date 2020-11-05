@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from imblearn.over_sampling import SMOTE
 from keras import metrics
+from keras.metrics import AUC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, hamming_loss, f1_score, roc_auc_score, \
     balanced_accuracy_score
@@ -21,7 +22,7 @@ from src.dnn_ncrt_whole import morgan_fingerprints, maccs_fingerprints, charge_f
     kappa_descriptors
 from src.rfc import classify_and_predict
 from src.scoring import specificity, sensitivity
-
+from sklearn.preprocessing import MinMaxScaler
 
 def calculate_scores(actual, predicted):
     return {
@@ -44,7 +45,7 @@ def dnn_train_and_predict(classifier, X_train, X_test, y_train, batch_size=64, e
     )
     classifier.fit(x=X_train, y=y_train, batch_size=batch_size, epochs=epochs, verbose=verbose,
                    validation_split=validation_split)
-    predicted = classifier.predict(X_test)
+    predicted = classifier.predict(X_test.values)
     predicted = list(np.round(predicted))
     predicted = list(map(lambda row: list(map(int, row)), predicted))
     return predicted, classifier
@@ -70,22 +71,17 @@ if __name__ == "__main__":
     ncrt_train = pd.read_csv('./data/raw/ncrt_liew_train.csv', index_col=0).fillna(0).reset_index(drop=True)
     ncrt_test = pd.read_csv('./data/raw/ncrt_liew_test.csv', index_col=0).fillna(0).reset_index(drop=True)
 
+    data = pd.concat([ncrt_train, ncrt_test]).reset_index(drop=True).fillna(0)
+
     common_comb = ['maccs', 'morgan', 'charge_f', 'harmonic_topology', 'autocorrelation_f']
 
-    mol = convert_to_mol(ncrt_train['smiles'])
-    mol_test = convert_to_mol(ncrt_test['smiles'])
+    fingerprints = get_fingerprints(convert_to_mol(data['smiles']))
 
-    fingerprints = get_fingerprints(convert_to_mol(ncrt_train['smiles']))
-    fingerprints_test = get_fingerprints(convert_to_mol(ncrt_test['smiles']))
-
-    all_inputs = pd.concat(list(map(lambda x: fingerprints[x], common_comb)), axis=1).fillna(0)
-    all_inputs_test = pd.concat(list(map(lambda x: fingerprints_test[x], common_comb)), axis=1).fillna(0)
-
-    X = pd.concat([all_inputs, all_inputs_test]).reset_index(drop=True)
-    y = pd.concat([ncrt_train['label'], ncrt_test['label']]).reset_index(drop=True)
+    X = pd.concat(list(map(lambda x: fingerprints[x], common_comb)), axis=1).fillna(0)
+    y = data['label']
 
     # Instantiate the cross validator
-    skf = StratifiedKFold(n_splits=10, random_state=1)
+    skf = StratifiedKFold(n_splits=10)
 
     scores = []
     models = []
@@ -95,22 +91,18 @@ if __name__ == "__main__":
         x_train, xval = X.iloc[train_indices], X.iloc[val_indices]
         y_train, yval = y.iloc[train_indices], y.iloc[val_indices]
 
-        # print('Original dataset shape %s' % Counter(y_train))
-        # sm = SMOTE(random_state=1)
-        # x_train, y_train = sm.fit_resample(np.array(x_train), y_train)
-        # print('Resampled dataset shape %s' % Counter(y_train))
+        print('Original dataset shape %s' % Counter(y_train))
+        sm = SMOTE(random_state=1)
+        x_train, y_train = sm.fit_resample(np.array(x_train), y_train)
+        print('Resampled dataset shape %s' % Counter(y_train))
 
         # Clear model, and create it DNN
         model = dnn(x_train.shape[1], pd.DataFrame(y_train).shape[1])
 
         predicted, model = dnn_train_and_predict(model, x_train, xval, y_train,
-                                                     batch_size=100, epochs=10,
+                                                     batch_size=64, epochs=10,
                                                      verbose=0,
                                                      validation_split=0.2)
-
-        # RFC
-        # classifier = RandomForestClassifier(n_jobs=10)
-        # predicted, model = classify_and_predict(x_train, xval, y_train, classifier)
 
         score = calculate_scores(yval, predicted)
         print(score)
